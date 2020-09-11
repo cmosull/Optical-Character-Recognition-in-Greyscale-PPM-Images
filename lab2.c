@@ -18,7 +18,6 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
     
-    
     //image
     if ((fpt=fopen(argv[1],"rb"))==NULL) {
         printf("Unable to open image for reading\n");
@@ -191,7 +190,12 @@ int main(int argc, char *argv[]) {
         fclose(fpt);
     }
 
-    //fclose(fpt);
+    free(img);
+    free(template);
+    free(zero_temp);
+    free(MSF);
+    free(norm_img);
+    free(bin_img);
 
 
 }
