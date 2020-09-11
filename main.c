@@ -1,17 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 int main(int argc, char *argv[]) {
     FILE *fpt;
-    int rows,cols,bytes,rows2,cols2,bytes2,sum,temp,temp2,temp3;
-    int i=3,r,c,r2,c2,mean=0,min=0,max=0,thresh=0,oc,or,TP=0,FP=0,TN=0,FN=0;
+    int rows,cols,bytes,rows2,cols2,bytes2,sum,temp,temp2,temp3,FP_temp,TP_temp;
+    int i=3,j,r,c,r2,c2,mean=0,min=0,max=0,thresh=0,oc,or,TP=0,FP=0,TN=0,FN=0;
     char header[320], header2[320], gt_letter[3], letter='e';
     unsigned char *img, *template;
     unsigned char *bin_img;
-    int *norm_img;
+    unsigned char *norm_img;
     int *zero_temp, *MSF;
+    int threshold[10]={60,80,100,120,140,160,180,200,220,240};
 
     //image
     if ((fpt=fopen(argv[1],"rb"))==NULL) {
@@ -103,13 +103,17 @@ int main(int argc, char *argv[]) {
     //printf("min=%d,max=%d\n",min,max);
     
     //normalize to 8-bit
-    norm_img=(int *)calloc((rows*cols),sizeof(int));
+    norm_img=(unsigned char *)calloc((rows*cols),sizeof(unsigned char));
     for (r=0; r<rows; r++){
         for (c=0; c<cols; c++){
             norm_img[r*cols+c]=((MSF[r*cols+c]-min)*255)/(max-min);
             //printf("norm=%d\n",norm_img[c]);
         }
     }
+    fpt=fopen("MSF.ppm","w");
+    fprintf(fpt,"P5 %d %d 255\n",cols,rows);
+    fwrite(norm_img,cols*rows,1,fpt);
+    fclose(fpt);
 
     //4a
     thresh=atoi(argv[4]);
@@ -132,38 +136,55 @@ int main(int argc, char *argv[]) {
     fclose(fpt); 
 
     //4b
-    fpt=fopen(argv[3],"r");
-
-    while(i == 3) {
-        i=fscanf(fpt,"%s %d %d",gt_letter, &oc, &or);
-        //printf("gtletter=%s\tletter=%c\n",&gt_letter[0],letter);
-        if (gt_letter[0] == letter) {
-            for(r=(or-7); r<=(or+7);r++){
-                for(c=(oc-4); c<=(oc+4); c++) {
-                    if (norm_img[r*cols+c] > thresh){
-                        TP++;
+    for (j=0; j<10; j++) {
+        fpt=fopen(argv[3],"r");
+        i=3;
+        TP=0;
+        FP=0;
+        FN=0;
+        TN=0;
+        while(i == 3) {
+            i=fscanf(fpt,"%s %d %d",gt_letter, &oc, &or);
+            //printf("gtletter=%s\tletter=%c\n",&gt_letter[0],letter);
+            if (i!=3) {
+                break;
+            }
+            if (gt_letter[0] == letter) {
+                TP_temp = TP;
+                for(r=(or-7); r<=(or+7);r++){
+                    for(c=(oc-4); c<=(oc+4); c++) {
+                        if (norm_img[r*cols+c] > threshold[j]){
+                            TP++;
+                            r=(or+8);
+                            c=(oc+5);
+                        }
                     }
-                    else{
-                        FN++;
+                }
+                if(TP==TP_temp) {
+                    FN++;
+                }
+            }
+            else {
+                FP_temp = FP;
+                for(r=(or-7); r<=(or+7);r++){
+                    for(c=(oc-4); c<=(oc+4); c++) {
+                        if (norm_img[r*cols+c] > threshold[j]){
+                            FP++;
+                            r=(or+8);
+                            c=(oc+4);
+                        }
                     }
+                }
+                if (FP == FP_temp){
+                    TN++;
                 }
             }
         }
-        else {
-            for(r=(or-7); r<=(or+7);r++){
-                for(c=(oc-4); c<=(oc+4); c++) {
-                    if (norm_img[r*cols+c] > thresh){
-                        FP++;
-                    }
-                    else{
-                        TN++;
-                    }
-                }
-            }
-        }
+        printf("For Threshold T=%d, TP=%d FP=%d TN=%d FN=%d\n",threshold[j],TP,FP,TN,FN);
+        fclose(fpt);
     }
-    fclose(fpt);
-    printf("TP=%d\tFP=%d\tTN=%d\tFN=%d\n",TP,FP,TN,FN);
+
+    //fclose(fpt);
 
 
 }
