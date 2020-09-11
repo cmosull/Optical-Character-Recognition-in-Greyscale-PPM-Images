@@ -5,7 +5,7 @@
 int main(int argc, char *argv[]) {
     FILE *fpt;
     int rows,cols,bytes,rows2,cols2,bytes2,sum,temp,temp2,temp3,FP_temp,TP_temp;
-    int i=3,j,r,c,r2,c2,mean=0,min=0,max=0,thresh=0,oc,or,TP=0,FP=0,TN=0,FN=0;
+    int i=3,j,r,c,r2,c2,mean=0,min=0,max=0,oc,or,TP=0,FP=0,TN=0,FN=0;
     char header[320], header2[320], gt_letter[3], letter='e';
     unsigned char *img, *template;
     unsigned char *bin_img;
@@ -13,6 +13,12 @@ int main(int argc, char *argv[]) {
     int *zero_temp, *MSF;
     int threshold[10]={60,80,100,120,140,160,180,200,220,240};
 
+    if (argc!=4){
+        printf("Usage: ./lab2.exe parenthood.ppm parenthood_e_template.ppm groundtruth.txt\n\n");
+        exit(0);
+    }
+    
+    
     //image
     if ((fpt=fopen(argv[1],"rb"))==NULL) {
         printf("Unable to open image for reading\n");
@@ -116,12 +122,11 @@ int main(int argc, char *argv[]) {
     fclose(fpt);
 
     //4a
-    thresh=atoi(argv[4]);
     bin_img = (unsigned char *)calloc((rows*cols),sizeof(unsigned char));
 
     for (r= 0; r<rows; r++) {
         for (c=0; c<cols; c++){
-            if(norm_img[r*cols+c] > thresh) {
+            if(norm_img[r*cols+c] > threshold[8]) {
                 bin_img[r*cols+c]=255;
             }
             else {
@@ -134,6 +139,8 @@ int main(int argc, char *argv[]) {
     fprintf(fpt,"P5 %d %d 255\n",cols,rows);
     fwrite(bin_img,cols*rows,1,fpt);
     fclose(fpt); 
+
+    printf("\nGenerated: Binary Image of MSF at Threshold = %d\n\n",threshold[8]);
 
     //4b
     for (j=0; j<10; j++) {
@@ -180,7 +187,7 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
-        printf("For Threshold T=%d, TP=%d FP=%d TN=%d FN=%d\n",threshold[j],TP,FP,TN,FN);
+        printf("For Threshold T=%d\tTP=%d\tFP=%d\tTN=%d\tFN=%d\n",threshold[j],TP,FP,TN,FN);
         fclose(fpt);
     }
 
